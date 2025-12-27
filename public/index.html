@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avez OSINT-X Web</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body {
+            background-color: #0d1117;
+            color: #c9d1d9;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #161b22;
+            border-radius: 8px;
+            padding: 30px;
+            border: 1px solid #30363d;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+        h1 {
+            color: #58a6ff;
+            margin-top: 0;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 10px;
+        }
+        .subtitle {
+            color: #8b949e;
+            margin-bottom: 25px;
+        }
+        .input-section {
+            margin-bottom: 30px;
+            background: #0d1117;
+            padding: 20px;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #58a6ff;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+        input[type="text"] {
+            flex-grow: 1;
+            padding: 12px 15px;
+            background-color: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #c9d1d9;
+            font-size: 16px;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #1f6feb;
+        }
+        button {
+            padding: 12px 25px;
+            background-color: #238636;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #2ea043;
+        }
+        button:disabled {
+            background-color: #30363d;
+            cursor: not-allowed;
+        }
+        #clearBtn {
+            background-color: #da3633;
+        }
+        #clearBtn:hover {
+            background-color: #f85149;
+        }
+        .config {
+            margin-top: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            font-size: 14px;
+        }
+        .config input, .config select {
+            padding: 8px;
+            background-color: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            color: #c9d1d9;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+            font-weight: bold;
+        }
+        .status.loading {
+            display: block;
+            background-color: #1c2128;
+            border: 1px solid #30363d;
+            color: #8b949e;
+        }
+        .status.error {
+            display: block;
+            background-color: #3c1e1e;
+            border: 1px solid #5c1a1a;
+            color: #f85149;
+        }
+        .results {
+            background-color: #0d1117;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            padding: 20px;
+            min-height: 100px;
+            max-height: 70vh;
+            overflow-y: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .db-header {
+            color: #a371f7;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            font-size: 1.1em;
+            padding-bottom: 5px;
+            border-bottom: 1px dashed #30363d;
+        }
+        .entry {
+            background-color: #161b22;
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #58a6ff;
+            overflow-x: auto;
+        }
+        .entry pre {
+            margin: 0;
+            color: #8b949e;
+        }
+        .no-data {
+            color: #8b949e;
+            font-style: italic;
+            text-align: center;
+            padding: 30px;
+        }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 12px;
+            color: #484f58;
+            border-top: 1px solid #30363d;
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 OSINT-X Web Interface</h1>
+        <p class="subtitle">Query the leak database by phone number or email address. No logs, no traces.</p>
+
+        <div class="input-section">
+            <label for="queryInput">Target (Phone/Email):</label>
+            <div class="input-group">
+                <input type="text" id="queryInput" placeholder="e.g., +79123456789 or target@example.com" autocomplete="off" />
+                <button id="searchBtn">Search</button>
+                <button id="clearBtn">Clear</button>
+            </div>
+            <div class="config">
+                <div>
+                    <label for="limit">Limit:</label>
+                    <input type="number" id="limit" value="300" min="1" max="1000" />
+                </div>
+                <div>
+                    <label for="lang">Language:</label>
+                    <select id="lang">
+                        <option value="ru">Russian (ru)</option>
+                        <option value="en">English (en)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div id="statusEl" class="status"></div>
+
+        <div class="results" id="resultsEl">
+            <div class="no-data">No query executed. Enter a target above.</div>
+        </div>
+
+        <div class="footer">
+            <div>Uses the Leak OSINT API. Results are for educational purposes only.</div>
+            <div style="margin-top: 5px; font-size: 10px; color: #30363d;">Interface by Just-Lisa | Secure Backend | No API Key Exposure</div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration - NO API KEY HERE
+        const DEFAULT_LANG = 'ru';
+        const DEFAULT_LIMIT = 300;
+        const REQUEST_TIMEOUT = 15000; // ms
+
+        // DOM Elements
+        const queryInput = document.getElementById('queryInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const limitInput = document.getElementById('limit');
+        const langSelect = document.getElementById('lang');
+        const statusEl = document.getElementById('statusEl');
+        const resultsEl = document.getElementById('resultsEl');
+
+        // Format response as JS-like object
+        function formatAsJs(data) {
+            if (typeof data !== 'object' || data === null) {
+                return JSON.stringify(data, null, 2);
+            }
+            const lines = [];
+            for (const [key, value] of Object.entries(data)) {
+                try {
+                    const valueStr = JSON.stringify(value, null, 2)
+                                        .split('\n')
+                                        .map((line, idx) => idx === 0 ? line : '  ' + line)
+                                        .join('\n');
+                    lines.push(`  ${key}: ${valueStr}`);
+                } catch (e) {
+                    lines.push(`  ${key}: "<unserializable>"`);
+                }
+            }
+            return '{\n' + lines.join('\n') + '\n}';
+        }
+
+        // Pretty print the API response
+        function prettyPrintResponse(response) {
+            resultsEl.innerHTML = '';
+
+            if (response['Error code']) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'status error';
+                errorDiv.textContent = `🚫 API Error: ${response['Error code']}`;
+                resultsEl.appendChild(errorDiv);
+                return;
+            }
+
+            const lst = response['List'];
+            if (!lst || Object.keys(lst).length === 0) {
+                resultsEl.innerHTML = '<div class="no-data">❌ No data found for this target.</div>';
+                return;
+            }
+
+            for (const [db, dbinfo] of Object.entries(lst)) {
+                const dbTitle = (String(db).toLowerCase() === '1win') ? 'Avez OSINT-X' : db;
+                const dbHeader = document.createElement('div');
+                dbHeader.className = 'db-header';
+                dbHeader.textContent = `📁 Database: ${dbTitle}`;
+                resultsEl.appendChild(dbHeader);
+
+                const dataList = (typeof dbinfo === 'object' && dbinfo !== null) ? dbinfo['Data'] : null;
+                if (!dataList || !Array.isArray(dataList) || dataList.length === 0) {
+                    const noEntries = document.createElement('div');
+                    noEntries.textContent = '  (no entries)';
+                    noEntries.style.color = '#8b949e';
+                    noEntries.style.marginLeft = '10px';
+                    resultsEl.appendChild(noEntries);
+                    continue;
+                }
+
+                dataList.forEach(entry => {
+                    const entryDiv = document.createElement('div');
+                    entryDiv.className = 'entry';
+                    const pre = document.createElement('pre');
+                    const dataToFormat = (typeof entry === 'object' && entry !== null) ? entry : { value: entry };
+                    pre.textContent = formatAsJs(dataToFormat);
+                    entryDiv.appendChild(pre);
+                    resultsEl.appendChild(entryDiv);
+                });
+            }
+        }
+
+        // Query the API via our secure backend
+        async function queryApi(query) {
+            const limit = parseInt(limitInput.value) || DEFAULT_LIMIT;
+            const lang = langSelect.value || DEFAULT_LANG;
+
+            const payload = {
+                request: query,  // NO TOKEN SENT FROM FRONTEND
+                limit: limit,
+                lang: lang
+            };
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+
+            try {
+                const response = await fetch('/api/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload),
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Backend error: ${response.status} - ${errorText}`);
+                }
+
+                const data = await response.json();
+                if (typeof data !== 'object') {
+                    throw new Error('Backend returned non-object response');
+                }
+                return data;
+
+            } catch (error) {
+                clearTimeout(timeoutId);
+                if (error.name === 'AbortError') {
+                    throw new Error(`Request timed out after ${REQUEST_TIMEOUT/1000} seconds`);
+                }
+                throw error;
+            }
+        }
+
+        // Event Handlers
+        searchBtn.addEventListener('click', async () => {
+            const query = queryInput.value.trim();
+            if (!query) {
+                alert('Please enter a phone number or email address.');
+                return;
+            }
+
+            // UI state
+            searchBtn.disabled = true;
+            searchBtn.textContent = 'Searching...';
+            statusEl.className = 'status loading';
+            statusEl.textContent = `Querying: ${query} ...`;
+            statusEl.style.display = 'block';
+
+            try {
+                const response = await queryApi(query);
+                statusEl.style.display = 'none';
+                prettyPrintResponse(response);
+            } catch (error) {
+                console.error('Query failed:', error);
+                statusEl.className = 'status error';
+                statusEl.textContent = `❌ Request failed: ${error.message}`;
+                resultsEl.innerHTML = `<div class="status error">${error.message}</div>`;
+            } finally {
+                searchBtn.disabled = false;
+                searchBtn.textContent = 'Search';
+            }
+        });
+
+        clearBtn.addEventListener('click', () => {
+            queryInput.value = '';
+            resultsEl.innerHTML = '<div class="no-data">No query executed. Enter a target above.</div>';
+            statusEl.style.display = 'none';
+        });
+
+        queryInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchBtn.click();
+            }
+        });
+
+        // Optional: Load from URL parameter
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const presetQuery = urlParams.get('q');
+            if (presetQuery) {
+                queryInput.value = presetQuery;
+            }
+        });
+    </script>
+</body>
+</html>
