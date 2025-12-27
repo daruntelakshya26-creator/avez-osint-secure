@@ -1,0 +1,15 @@
+{
+  "name": "avez-osint-secure",
+  "version": "1.0.0",
+  "description": "Secure OSINT Web Interface",
+  "main": "api/query.js",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "node-fetch": "^2.6.9"
+  },
+  "devDependencies": {
+    "vercel": "^28.16.0"
+  }
+}
